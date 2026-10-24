@@ -30,6 +30,17 @@ def copy_to_clipboard(text: str):
     except Exception as e:
         print(f"\n複製失敗: {e}")
 
+def save_to_markdown(directory: Path, content: str):
+    """將樹狀清單輸出為 Markdown 檔案"""
+    folder_name = directory.resolve().name or "root"
+    output_file = directory / f"[{folder_name}]file-name.md"
+    try:
+        md_content = f"# {folder_name}\n\n```text\n{content}\n```\n"
+        output_file.write_text(md_content, encoding="utf-8")
+        print(f"\n已成功輸出 Markdown 檔案：{output_file.resolve()}")
+    except Exception as e:
+        print(f"\n輸出 Markdown 失敗: {e}")
+
 def main():
     folder_str = input("請輸入資料夾路徑: ").strip('"\'')
     root_path = Path(folder_str)
@@ -53,5 +64,14 @@ def main():
     else:
         print("已略過複製。")
 
+    # 詢問是否輸出為 Markdown 檔案
+    choice_md = input("是否輸出為 Markdown 檔案？(y/n): ").strip().lower()
+    if choice_md == "y":
+        save_to_markdown(root_path, full_result)
+    else:
+        print("已略過輸出 Markdown。")
+
 if __name__ == "__main__":
+    main()
+
     main()
