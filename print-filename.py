@@ -21,6 +21,23 @@ def generate_tree_lines(directory: Path, prefix: str = "") -> list[str]:
             lines.append(f"{prefix}{connector} {entry.name}")
     return lines
 
+def generate_markdown_lines(directory: Path, indent_level: int = 0) -> list[str]:
+    """遞迴生成符合 Markdown 語法之縮排清單（無樹狀線條，可由編輯器折疊層級）"""
+    lines = []
+    indent = "  " * indent_level
+    try:
+        entries = sorted(list(directory.iterdir()), key=lambda e: (not e.is_dir(), e.name.lower()))
+    except PermissionError:
+        return [f"{indent}- [存取權限不足]"]
+
+    for entry in entries:
+        if entry.is_dir():
+            lines.append(f"{indent}- [{entry.name}]")
+            lines.extend(generate_markdown_lines(entry, indent_level + 1))
+        else:
+            lines.append(f"{indent}- {entry.name}")
+    return lines
+
 def copy_to_clipboard(text: str):
     """使用 Windows 內建 clip 指令將文字寫入剪貼簿"""
     try:
@@ -30,13 +47,17 @@ def copy_to_clipboard(text: str):
     except Exception as e:
         print(f"\n複製失敗: {e}")
 
-def save_to_markdown(directory: Path, content: str):
-    """將樹狀清單輸出為 Markdown 檔案"""
+def save_to_markdown(directory: Path):
+    """將樹狀清單輸出為純 Markdown 格式檔案"""
     folder_name = directory.resolve().name or "root"
     output_file = directory / f"[{folder_name}]file-name.md"
     try:
-        md_content = f"# {folder_name}\n\n```text\n{content}\n```\n"
-        output_file.write_text(md_content, encoding="utf-8")
+        content_lines = [
+            f"# {folder_name}\n",
+            f"> 目錄路徑：`{directory.resolve()}`\n"
+        ]
+        content_lines.extend(generate_markdown_lines(directory))
+        output_file.write_text("\n".join(content_lines) + "\n", encoding="utf-8")
         print(f"\n已成功輸出 Markdown 檔案：{output_file.resolve()}")
     except Exception as e:
         print(f"\n輸出 Markdown 失敗: {e}")
@@ -49,7 +70,7 @@ def main():
         print("指定的路徑不存在或不是資料夾！")
         return
 
-    # 生成樹狀清單
+    # 生成樹狀清單（用於終端機顯示與剪貼簿）
     output_lines = [f"[Root directory] {root_path.resolve()}"]
     output_lines.extend(generate_tree_lines(root_path))
     full_result = "\n".join(output_lines)
@@ -67,11 +88,9 @@ def main():
     # 詢問是否輸出為 Markdown 檔案
     choice_md = input("是否輸出為 Markdown 檔案？(y/n): ").strip().lower()
     if choice_md == "y":
-        save_to_markdown(root_path, full_result)
+        save_to_markdown(root_path)
     else:
         print("已略過輸出 Markdown。")
 
 if __name__ == "__main__":
-    main()
-
     main()
